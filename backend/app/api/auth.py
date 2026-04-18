@@ -10,7 +10,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", response_model=APIResponse)
-def register(data: RegisterRequest, db: Session = Depends(get_db)):
+def register(data: RegisterRequest, response: Response, db: Session = Depends(get_db)):
     existing = db.exec(select(User).where(User.email == data.email)).first()
 
     if existing:
@@ -24,6 +24,16 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    token = create_access_token({"sub": str(user.id)})
+
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=False,   # True in production (HTTPS)
+        samesite="lax"
+    )
 
     return APIResponse(success=True, message="User registered successfully")
 

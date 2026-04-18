@@ -3,6 +3,7 @@ from app.api import auth, users, images, reports, matching, system
 from app.core.logger import setup_logger
 import time
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 # logger setup
 logger = setup_logger()
@@ -10,6 +11,10 @@ logger.info("Starting SentinelGuard API")
 
 app = FastAPI(title="SentinelGuard API")
 
+# static files for uploaded images
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
