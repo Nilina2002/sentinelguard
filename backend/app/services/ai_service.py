@@ -7,7 +7,7 @@ import chromadb  # type: ignore[import-not-found]
 import numpy as np
 
 EMBEDDING_DIMENSION = 512
-SIMILARITY_THRESHOLD = 0.92
+SIMILARITY_THRESHOLD = 0.98
 TOP_K_DEFAULT = 5
 
 _client = chromadb.PersistentClient(path="chroma_db")

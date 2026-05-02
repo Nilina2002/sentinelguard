@@ -99,7 +99,7 @@ def suggest_threshold(positive: Iterable[float], negative: Iterable[float]) -> f
     positive = np.array(list(positive), dtype=np.float32)
     negative = np.array(list(negative), dtype=np.float32)
 
-    best_threshold = 0.92
+    best_threshold = 0.98
     best_margin = -10.0
     for threshold in np.arange(0.70, 0.99, 0.01):
         tpr = float(np.mean(positive >= threshold)) if len(positive) else 0.0
