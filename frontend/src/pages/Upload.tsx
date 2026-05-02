@@ -2,6 +2,7 @@ import { useState } from "react";
 import api from "../api/client";
 import { toast } from "react-toastify";
 import Loading from "../components/Loading";
+import { generateCanonicalEmbedding } from "../utils/embedding";
 
 export default function Upload() {
   const [file, setFile] = useState<File | null>(null);
@@ -27,6 +28,8 @@ export default function Upload() {
 
     try {
       setLoading(true);
+      const embedding = await generateCanonicalEmbedding(file);
+      formData.append("embedding", JSON.stringify(embedding));
 
       const res = await api.post("/images/upload", formData, {
         headers: {
@@ -42,7 +45,7 @@ export default function Upload() {
       setFile(null);
       setPreview(null);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Upload failed");
+      toast.error(err.response?.data?.message || err.message || "Upload failed");
     } finally {
       setLoading(false);
     }

@@ -2,22 +2,27 @@ import React, { useState } from "react";
 import CameraCapture from "./CameraCapture";
 import Loading from "./Loading";
 import { toast } from "react-toastify";
-import axios from "axios";
 import { base64ToFile } from "../utils/image";
+import api from "../api/client";
+import { generateCanonicalEmbedding } from "../utils/embedding";
 
 type ReportModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  imageId: number;
   imageUrl: string;
 };
 
 const ReportModal: React.FC<ReportModalProps> = ({
   isOpen,
   onClose,
+  imageId,
   imageUrl,
 }) => {
   const [isCameraOn, setIsCameraOn] = useState<boolean>(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [claimImageFile, setClaimImageFile] = useState<File | null>(null);
+  const [claimImagePreview, setClaimImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   if (!isOpen) return null;
@@ -27,41 +32,87 @@ const ReportModal: React.FC<ReportModalProps> = ({
     setIsCameraOn(false);
   };
 
-  const handleSubmit = async () => {
+  const handleClaimImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+
+    if (claimImagePreview) {
+      URL.revokeObjectURL(claimImagePreview);
+    }
+
+    setClaimImageFile(selected);
+    setClaimImagePreview(URL.createObjectURL(selected));
+  };
+
+  const submitReport = async (skipVerification: boolean) => {
     try {
       setLoading(true);
-
-      const selfieFile = base64ToFile(capturedImage!, "selfie.png");
 
       // fetch original image and convert to blob
       const res = await fetch(imageUrl);
       const blob = await res.blob();
       const reportedFile = new File([blob], "reported.png");
+      const queryFile = claimImageFile ?? reportedFile;
 
-      const formData = new FormData();
-      formData.append("selfie", selfieFile);
-      formData.append("reported_image", reportedFile);
+      if (!skipVerification) {
+        if (!capturedImage) {
+          toast.error("Please capture a selfie first.");
+          return;
+        }
 
-      const response = await axios.post(
-        "http://localhost:8000/reports/verify",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        const selfieFile = base64ToFile(capturedImage, "selfie.png");
+        const formData = new FormData();
+        formData.append("selfie", selfieFile);
+        formData.append("reported_image", reportedFile);
+
+        const response = await api.post("/reports/verify", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (!response.data.success) {
+          toast.error("Face verification failed ❌. Try again with a clearer selfie.");
+          return;
+        }
+      }
+
+      if (!claimImageFile) {
+        toast.error("Please upload the claim image before submitting.");
+        return;
+      }
+
+      const reportRes = await api.post("/reports/");
+      const reportId = reportRes.data.id;
+
+      const embedding = await generateCanonicalEmbedding(queryFile);
+      const embedRes = await api.post(`/reports/${reportId}/embedding`, {
+        verified: true,
+        embedding,
+        target_image_id: imageId,
+      });
+
+      const matchesFound = embedRes.data?.data?.matches_found ?? 0;
+      toast.success(
+        skipVerification
+          ? "Report submitted (verification skipped) ✅"
+          : "Report submitted & verified ✅",
       );
-
-      if (!response.data.success) {
-        toast.error("Face verification failed ❌. Try again with a clearer selfie.");
-        return
-      } 
-      setLoading(false);
-      toast.success("Report submitted & verified ✅");
+      if (matchesFound > 0) {
+        toast.info("Claim image matched. The reported image was removed.");
+      }
       onClose();
-
-      
     } catch (err: any) {
       toast.error("An error occurred while submitting the report.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    await submitReport(false);
+  };
+
+  const handleSkipVerification = async () => {
+    await submitReport(true);
   };
 
   return (
@@ -76,14 +127,42 @@ const ReportModal: React.FC<ReportModalProps> = ({
           className="w-full h-48 object-cover rounded"
         />
 
+        {/* Claim Image Upload */}
+        <div className="mt-4 text-left">
+          <label className="text-sm text-gray-700 font-medium block mb-2">
+            Upload the claim image (required)
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleClaimImageChange}
+            className="w-full text-sm"
+          />
+          {claimImagePreview && (
+            <img
+              src={claimImagePreview}
+              alt="Claim preview"
+              className="mt-3 w-full h-40 object-cover rounded"
+            />
+          )}
+        </div>
+
         {/* Start Camera */}
         {!isCameraOn && !capturedImage && (
-          <button
-            onClick={() => setIsCameraOn(true)}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            Start Camera
-          </button>
+          <div className="mt-4 flex justify-center gap-3">
+            <button
+              onClick={() => setIsCameraOn(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              Start Camera
+            </button>
+            <button
+              onClick={handleSkipVerification}
+              className="px-4 py-2 bg-amber-600 text-white rounded"
+            >
+              Skip (Test)
+            </button>
+          </div>
         )}
 
         {/* Camera */}

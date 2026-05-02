@@ -36,6 +36,7 @@ export default function ImageCard({ id, image_url }: ImageProps) {
         {open && (
             <ReportModal
                 isOpen={open}
+                imageId={id}
                 imageUrl={imageUrl}
                 onClose={() => setOpen(false)}
             />
