@@ -193,7 +193,7 @@ async def verify_report(selfie: UploadFile = File(...), reported_image: UploadFi
         result = face_recognition.compare_faces(
             [reported_encodings[0]],
             selfie_encodings[0],
-            tolerance=0.5  # lower = stricter
+            tolerance=0.7  # lower = stricter
         )
 
         distance = face_recognition.face_distance(
@@ -206,8 +206,6 @@ async def verify_report(selfie: UploadFile = File(...), reported_image: UploadFi
         if verified:
             # TODO: save to DB
             pass
-
         return APIResponse(success=verified, message="Identity verified", data={"similarity": 1-distance})
-
     except Exception:
         return APIResponse(success=False, message="Error occurred while processing images")

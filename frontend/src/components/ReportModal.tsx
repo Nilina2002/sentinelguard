@@ -89,8 +89,9 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
         toast.info("Claim image matched. The reported image was removed.");
       }
       onClose();
-    } catch {
-      toast.error("Something went wrong while submitting the report.");
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong while submitting the report.");
     } finally {
       setLoading(false);
     }
