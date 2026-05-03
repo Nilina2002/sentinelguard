@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import CameraCapture from "./CameraCapture";
 import Loading from "./Loading";
 import { toast } from "react-toastify";
 import { base64ToFile } from "../utils/image";
 import api from "../api/client";
-import { generateCanonicalEmbedding } from "../utils/embedding";
 
 type ReportModalProps = {
   isOpen: boolean;
@@ -21,98 +20,178 @@ const ReportModal: React.FC<ReportModalProps> = ({
 }) => {
   const [isCameraOn, setIsCameraOn] = useState<boolean>(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [claimImageFile, setClaimImageFile] = useState<File | null>(null);
-  const [claimImagePreview, setClaimImagePreview] = useState<string | null>(null);
+  const [supportingImageFile, setSupportingImageFile] = useState<File | null>(null);
+  const [supportingImagePreview, setSupportingImagePreview] = useState<string | null>(
+    null,
+  );
   const [loading, setLoading] = useState<boolean>(false);
+  const [reportId, setReportId] = useState<number | null>(null);
+  const [faceEligible, setFaceEligible] = useState<boolean>(false);
+  const [checkingFace, setCheckingFace] = useState<boolean>(false);
+  const [stepStatus, setStepStatus] = useState({
+    faceCheck: "pending",
+    selfieVerify: "pending",
+    supportVerify: "pending",
+    finalize: "pending",
+  });
 
   if (!isOpen) return null;
+
+  useEffect(() => {
+    if (!isOpen) {
+      setReportId(null);
+      setFaceEligible(false);
+      setCheckingFace(false);
+      setCapturedImage(null);
+      setIsCameraOn(false);
+      setSupportingImageFile(null);
+      setSupportingImagePreview(null);
+      setStepStatus({
+        faceCheck: "pending",
+        selfieVerify: "pending",
+        supportVerify: "pending",
+        finalize: "pending",
+      });
+    }
+  }, [isOpen]);
 
   const handleCapture = (img: string) => {
     setCapturedImage(img);
     setIsCameraOn(false);
   };
 
-  const handleClaimImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSupportingImageChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const selected = event.target.files?.[0];
     if (!selected) return;
 
-    if (claimImagePreview) {
-      URL.revokeObjectURL(claimImagePreview);
+    if (supportingImagePreview) {
+      URL.revokeObjectURL(supportingImagePreview);
     }
 
-    setClaimImageFile(selected);
-    setClaimImagePreview(URL.createObjectURL(selected));
+    setSupportingImageFile(selected);
+    setSupportingImagePreview(URL.createObjectURL(selected));
   };
 
-  const submitReport = async (skipVerification: boolean) => {
+  const reasonMessage = (reasonCode?: string) => {
+    const reasons: Record<string, string> = {
+      NO_FACE_DETECTED: "No face detected in the reported image.",
+      SELFIE_FACE_COUNT_INVALID: "Your selfie must contain exactly one face.",
+      LIVENESS_CHECK_FAILED:
+        "Selfie liveness check failed. Try again in better lighting.",
+      SELFIE_MISMATCH: "Selfie does not match the reported image face.",
+      SUPPORTING_EVIDENCE_MISMATCH:
+        "Supporting image does not match required thresholds.",
+      FINAL_THRESHOLD_FAILED: "Final confidence is below approval threshold.",
+    };
+    return reasons[reasonCode || ""] || "Verification failed. Please try again.";
+  };
+
+  const submitReport = async () => {
     try {
       setLoading(true);
+      setStepStatus({
+        faceCheck: "pending",
+        selfieVerify: "pending",
+        supportVerify: "pending",
+        finalize: "pending",
+      });
 
-      // fetch original image and convert to blob
-      const res = await fetch(imageUrl);
-      const blob = await res.blob();
-      const reportedFile = new File([blob], "reported.png");
-      const queryFile = claimImageFile ?? reportedFile;
-
-      if (!skipVerification) {
-        if (!capturedImage) {
-          toast.error("Please capture a selfie first.");
-          return;
-        }
-
-        const selfieFile = base64ToFile(capturedImage, "selfie.png");
-        const formData = new FormData();
-        formData.append("selfie", selfieFile);
-        formData.append("reported_image", reportedFile);
-
-        const response = await api.post("/reports/verify", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        if (!response.data.success) {
-          toast.error("Face verification failed ❌. Try again with a clearer selfie.");
-          return;
-        }
-      }
-
-      if (!claimImageFile) {
-        toast.error("Please upload the claim image before submitting.");
+      if (!capturedImage) {
+        toast.error("Please capture a selfie first.");
         return;
       }
 
-      const reportRes = await api.post("/reports/");
-      const reportId = reportRes.data.id;
-
-      const embedding = await generateCanonicalEmbedding(queryFile);
-      const embedRes = await api.post(`/reports/${reportId}/embedding`, {
-        verified: true,
-        embedding,
-        target_image_id: imageId,
-      });
-
-      const matchesFound = embedRes.data?.data?.matches_found ?? 0;
-      toast.success(
-        skipVerification
-          ? "Report submitted (verification skipped) ✅"
-          : "Report submitted & verified ✅",
-      );
-      if (matchesFound > 0) {
-        toast.info("Claim image matched. The reported image was removed.");
+      if (!supportingImageFile) {
+        toast.error("Please upload a supporting image.");
+        return;
       }
+
+      if (!reportId || !faceEligible) {
+        toast.error("Reported image must pass face check before selfie verification.");
+        return;
+      }
+
+      setStepStatus((prev) => ({ ...prev, selfieVerify: "in_progress" }));
+      const selfieFile = base64ToFile(capturedImage, "selfie.png");
+      const selfieForm = new FormData();
+      selfieForm.append("selfie", selfieFile);
+      const selfieRes = await api.post(`/reports/${reportId}/selfie-verify`, selfieForm, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      if (!selfieRes.data.success) {
+        setStepStatus((prev) => ({ ...prev, selfieVerify: "failed" }));
+        toast.error(reasonMessage(selfieRes.data?.data?.reason_code));
+        return;
+      }
+      setStepStatus((prev) => ({ ...prev, selfieVerify: "passed" }));
+
+      setStepStatus((prev) => ({ ...prev, supportVerify: "in_progress" }));
+      const supportForm = new FormData();
+      supportForm.append("supporting_image", supportingImageFile);
+      const supportRes = await api.post(
+        `/reports/${reportId}/supporting-evidence-verify`,
+        supportForm,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
+      if (!supportRes.data.success) {
+        setStepStatus((prev) => ({ ...prev, supportVerify: "failed" }));
+        toast.error(reasonMessage(supportRes.data?.data?.reason_code));
+        return;
+      }
+      setStepStatus((prev) => ({ ...prev, supportVerify: "passed" }));
+
+      setStepStatus((prev) => ({ ...prev, finalize: "in_progress" }));
+      const finalizeRes = await api.post(`/reports/${reportId}/finalize`);
+      if (!finalizeRes.data.success) {
+        setStepStatus((prev) => ({ ...prev, finalize: "failed" }));
+        toast.error(reasonMessage(finalizeRes.data?.data?.reason_code));
+        return;
+      }
+      setStepStatus((prev) => ({ ...prev, finalize: "passed" }));
+
+      toast.success("Ownership verified and reported image removed.");
       onClose();
     } catch (err: any) {
-      toast.error("An error occurred while submitting the report.");
+      const reasonCode = err?.response?.data?.data?.reason_code;
+      toast.error(reasonMessage(reasonCode));
     } finally {
       setLoading(false);
     }
   };
 
   const handleSubmit = async () => {
-    await submitReport(false);
+    await submitReport();
   };
 
-  const handleSkipVerification = async () => {
-    await submitReport(true);
+  const handleCheckReportedFace = async () => {
+    try {
+      setCheckingFace(true);
+      setStepStatus((prev) => ({ ...prev, faceCheck: "in_progress" }));
+      const reportRes = await api.post("/reports/", { target_image_id: imageId });
+      const createdReportId = reportRes.data.id;
+      const faceCheck = await api.post(`/reports/${createdReportId}/face-presence-check`);
+      if (!faceCheck.data.success) {
+        setStepStatus((prev) => ({ ...prev, faceCheck: "failed" }));
+        setFaceEligible(false);
+        toast.error(reasonMessage(faceCheck.data?.data?.reason_code));
+        return;
+      }
+      setReportId(createdReportId);
+      setFaceEligible(true);
+      setStepStatus((prev) => ({ ...prev, faceCheck: "passed" }));
+      toast.success("Face detected in reported image. Selfie upload is now enabled.");
+    } catch (err: any) {
+      const reasonCode = err?.response?.data?.data?.reason_code;
+      setFaceEligible(false);
+      setStepStatus((prev) => ({ ...prev, faceCheck: "failed" }));
+      toast.error(reasonMessage(reasonCode));
+    } finally {
+      setCheckingFace(false);
+    }
   };
 
   return (
@@ -127,28 +206,43 @@ const ReportModal: React.FC<ReportModalProps> = ({
           className="w-full h-48 object-cover rounded"
         />
 
-        {/* Claim Image Upload */}
+        {/* Supporting Image Upload */}
         <div className="mt-4 text-left">
           <label className="text-sm text-gray-700 font-medium block mb-2">
-            Upload the claim image (required)
+            Upload supporting image (required)
           </label>
           <input
             type="file"
             accept="image/*"
-            onChange={handleClaimImageChange}
+            onChange={handleSupportingImageChange}
             className="w-full text-sm"
           />
-          {claimImagePreview && (
+          {supportingImagePreview && (
             <img
-              src={claimImagePreview}
-              alt="Claim preview"
+              src={supportingImagePreview}
+              alt="Supporting preview"
               className="mt-3 w-full h-40 object-cover rounded"
             />
           )}
         </div>
 
+        {!faceEligible && (
+          <div className="mt-4">
+            <button
+              onClick={handleCheckReportedFace}
+              disabled={checkingFace}
+              className="px-4 py-2 bg-indigo-600 text-white rounded"
+            >
+              {checkingFace ? "Checking face..." : "Check Face in Reported Image"}
+            </button>
+            <p className="text-xs text-gray-500 mt-2">
+              Selfie capture is enabled only when the reported image contains a face.
+            </p>
+          </div>
+        )}
+
         {/* Start Camera */}
-        {!isCameraOn && !capturedImage && (
+        {faceEligible && !isCameraOn && !capturedImage && (
           <div className="mt-4 flex justify-center gap-3">
             <button
               onClick={() => setIsCameraOn(true)}
@@ -156,17 +250,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
             >
               Start Camera
             </button>
-            <button
-              onClick={handleSkipVerification}
-              className="px-4 py-2 bg-amber-600 text-white rounded"
-            >
-              Skip (Test)
-            </button>
           </div>
         )}
 
         {/* Camera */}
-        {isCameraOn && (
+        {faceEligible && isCameraOn && (
           <div className="mt-4">
             <CameraCapture
               onCapture={handleCapture}
@@ -176,7 +264,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         )}
 
         {/* Preview */}
-        {capturedImage && (
+        {faceEligible && capturedImage && (
           <div className="mt-4 flex flex-col items-center">
             <p className="text-sm text-gray-600 mb-2">
               Confirm your selfie
@@ -208,6 +296,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
         {/* Loading */}
         {loading && <Loading message="Submitting report..." />}
+
+        <div className="mt-4 text-left text-xs text-gray-700 space-y-1">
+          <p>1. Face check: {stepStatus.faceCheck}</p>
+          <p>2. Selfie verification: {stepStatus.selfieVerify}</p>
+          <p>3. Supporting verification: {stepStatus.supportVerify}</p>
+          <p>4. Finalize removal: {stepStatus.finalize}</p>
+        </div>
 
         {/* Close */}
         <button

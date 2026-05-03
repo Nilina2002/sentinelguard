@@ -5,3 +5,5 @@ from .report import Report
 from .report_match import ReportMatch
 from .deletion_log import DeletionLog
 from .blocklist import Blocklist
+from .report_verification_attempt import ReportVerificationAttempt
+from .report_evidence import ReportEvidence

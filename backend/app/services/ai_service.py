@@ -65,6 +65,12 @@ def search_similar_images(embedding: Iterable[float], top_k: int = TOP_K_DEFAULT
     return matches
 
 
+def cosine_similarity(left: Iterable[float], right: Iterable[float]) -> float:
+    left_vector = np.array(normalize_embedding(left), dtype=np.float32)
+    right_vector = np.array(normalize_embedding(right), dtype=np.float32)
+    return float(np.dot(left_vector, right_vector))
+
+
 def get_image_embedding(vector_id: str) -> Optional[List[float]]:
     result = _image_collection.get(ids=[vector_id], include=["embeddings"])
     embeddings = result.get("embeddings")
