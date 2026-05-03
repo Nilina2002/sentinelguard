@@ -5,7 +5,7 @@ import Loading from "../components/Loading";
 export default function RootRedirect() {
   const { user, loading } = useAuth();
 
-  if (loading) return <Loading message="Loading..." />;
+  if (loading) return <Loading message="Loading…" fullScreen />;
 
-  return user ? <Navigate to="/home" /> : <Navigate to="/login" />;
+  return user ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />;
 }

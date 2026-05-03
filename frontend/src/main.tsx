@@ -12,16 +12,19 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <AuthProvider>
       <BrowserRouter>
         <App />
-        <ToastContainer 
-          position="top-right" autoClose={3000} 
-          hideProgressBar={true}
-          newestOnTop={false}
+        <ToastContainer
+          position="top-right"
+          autoClose={3200}
+          hideProgressBar={false}
+          newestOnTop
           closeOnClick
           rtl={false}
           pauseOnFocusLoss
           draggable
           pauseOnHover
-          theme="light"
+          theme="dark"
+          toastClassName="!rounded-xl !shadow-lg !font-sans"
+          className="!top-4 !right-4"
         />
       </BrowserRouter>
     </AuthProvider>
