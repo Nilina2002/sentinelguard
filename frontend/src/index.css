@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-surface: oklch(0.99 0.004 250);
+  --color-surface-elevated: oklch(1 0 0);
+  --color-border-subtle: oklch(0.91 0.01 250);
+  --color-brand: oklch(0.55 0.14 195);
+  --color-brand-hover: oklch(0.48 0.14 195);
+  --color-muted: oklch(0.52 0.02 250);
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    @apply bg-surface text-slate-900 font-sans;
+  }
+}
