@@ -6,3 +6,4 @@ app.log
 alembic/versions/__pycache__/
 *.mako
 uploads/*
+dataset/
