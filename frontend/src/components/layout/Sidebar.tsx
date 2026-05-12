@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import api from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import logoIcon from "../../assets/logo_icon.png";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   [
@@ -27,14 +28,14 @@ export default function Sidebar() {
   return (
     <aside className="sticky top-0 z-40 flex w-full flex-col border-b border-slate-800/80 bg-slate-950 text-white shadow-lg shadow-slate-900/20 lg:h-screen lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r lg:shadow-xl">
       <div className="flex flex-col gap-1 border-b border-slate-800/80 px-4 py-4 lg:px-4 lg:py-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-teal-400 to-cyan-600 shadow-lg shadow-teal-900/30">
-            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-md ring-1 ring-white/10">
+            <img src={logoIcon} alt="SnapSafe logo" className="h-10 w-70 cursor-pointer" onClick={() => navigate("/home")}/>
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight">SentinelGuard</h1>
+            <h1 className="text-lg font-bold tracking-tight cursor-pointer" onClick={() => navigate("/home")}>
+              SnapSafe
+            </h1>
           </div>
         </div>
       </div>

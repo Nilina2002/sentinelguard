@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Loading from "../components/Loading";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
+import logoIcon from "../assets/logo_icon.png";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -73,15 +74,13 @@ export default function Register() {
       <div className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-12">
         <div className="grid w-full gap-10 lg:grid-cols-[1.05fr,0.95fr]">
           <div className="order-2 flex flex-col justify-center lg:order-1">
-            <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 3l7 4v5c0 4.418-3.134 8.418-7 9-3.866-.582-7-4.582-7-9V7l7-4z" />
-                </svg>
+            <div className="inline-flex items-center gap-4 rounded-2xl border border-slate-200/70 bg-slate-50/70 px-5 py-3 shadow-sm backdrop-blur">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 shadow-md ring-1 ring-slate-200/70">
+                <img src={logoIcon} alt="SnapSafe logo" className="h-10 w-70" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">SentinelGuard</p>
-                <p className="text-sm font-semibold text-slate-900">Verified community feed</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SnapSafe</p>
+                <p className="text-sm font-semibold text-slate-900">Social sharing with SentinelGuard reports</p>
               </div>
             </div>
             {/* <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
@@ -91,8 +90,8 @@ export default function Register() {
 
           <div className="order-1 flex items-center justify-center lg:order-2">
             <div className="auth-card w-full max-w-md">
-              <h2 className="text-xl font-semibold text-slate-900 text-center">Create account</h2>
-              <p className="mt-1 text-sm text-slate-500 text-center font-semibold">Join the professional safety community</p>
+              <h2 className="text-xl font-semibold text-slate-900 text-center">Create your SnapSafe account</h2>
+              <p className="mt-1 text-sm text-slate-500 text-center font-semibold">Set up your profile and start sharing safely.</p>
 
               <div className="mt-6 space-y-4">
                 <div>
@@ -176,7 +175,7 @@ export default function Register() {
                       type="tel"
                       autoComplete="tel"
                       className="auth-input pl-11"
-                      placeholder="+1 555 0101"
+                      placeholder="07xxxxxxxx"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                     />
