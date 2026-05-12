@@ -98,7 +98,7 @@ export default function Upload() {
         )}
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button type="button" onClick={handleUpload} disabled={!file || loading} className="btn-primary disabled:pointer-events-none disabled:opacity-40">
+          <button type="button" onClick={handleUpload} disabled={!file || loading} className="btn-primary disabled:pointer-events-none disabled:opacity-40 cursor-pointer">
             Upload to feed
           </button>
           {file && (

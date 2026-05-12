@@ -28,7 +28,6 @@ def normalize_embedding(embedding: Iterable[float]) -> List[float]:
         raise ValueError("Embedding norm cannot be zero")
     return (vector / norm).tolist()
 
-
 def upsert_image_embedding(image_id: int, embedding: Iterable[float], model_used: str = "custom-v1") -> str:
     vector_id = str(uuid.uuid4())
     normalized = normalize_embedding(embedding)
@@ -38,7 +37,6 @@ def upsert_image_embedding(image_id: int, embedding: Iterable[float], model_used
         metadatas=[{"image_id": image_id, "model_used": model_used}],
     )
     return vector_id
-
 
 def search_similar_images(embedding: Iterable[float], top_k: int = TOP_K_DEFAULT):
     normalized = normalize_embedding(embedding)
@@ -64,7 +62,6 @@ def search_similar_images(embedding: Iterable[float], top_k: int = TOP_K_DEFAULT
         )
     return matches
 
-
 def get_image_embedding(vector_id: str) -> Optional[List[float]]:
     result = _image_collection.get(ids=[vector_id], include=["embeddings"])
     embeddings = result.get("embeddings")
@@ -73,7 +70,6 @@ def get_image_embedding(vector_id: str) -> Optional[List[float]]:
     first_embedding = embeddings[0]
     return [float(value) for value in first_embedding]
 
-
 def add_to_blocklist(vector_id: str, embedding: Iterable[float], reason: str = "ncii"):
     normalized = normalize_embedding(embedding)
     _blocklist_collection.upsert(
@@ -81,7 +77,6 @@ def add_to_blocklist(vector_id: str, embedding: Iterable[float], reason: str = "
         embeddings=[normalized],
         metadatas=[{"reason": reason}],
     )
-
 
 def is_blocklisted(embedding: Iterable[float], threshold: float = SIMILARITY_THRESHOLD) -> bool:
     normalized = normalize_embedding(embedding)

@@ -16,6 +16,7 @@ interface ImageType {
   };
   like_count: number;
   comment_count: number;
+  liked_by_me: boolean;
 }
 
 export default function Home() {

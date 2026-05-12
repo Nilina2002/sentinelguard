@@ -1,4 +1,5 @@
 import { useState } from "react";
+import api from "../api/client";
 import ReportModal from "./ReportModal";
 
 interface ImageProps {
@@ -13,7 +14,19 @@ interface ImageProps {
   };
   like_count: number;
   comment_count: number;
+  liked_by_me: boolean;
 }
+
+type CommentItem = {
+  id: number;
+  content: string;
+  created_at: string;
+  user: {
+    id: number;
+    username: string;
+    avatar_url: string | null;
+  };
+};
 
 function formatRelativeTime(isoString: string): string {
   const date = new Date(isoString);
@@ -56,7 +69,7 @@ function avatarUrlFromPath(path: string | null): string | null {
   return `http://localhost:8000/${normalized}`;
 }
 
-export default function ImageCard({ id, image_url, created_at, owner, like_count, comment_count }: ImageProps) {
+export default function ImageCard({ id, image_url, created_at, owner, like_count, comment_count, liked_by_me }: ImageProps) {
   const normalizedPath = image_url.replace(/\\/g, "/");
   const imageUrl = `http://localhost:8000/${normalizedPath}`;
   const ownerName = owner.username || nameFromEmail(owner.email);
@@ -64,7 +77,63 @@ export default function ImageCard({ id, image_url, created_at, owner, like_count
   const timestamp = formatRelativeTime(created_at);
   const avatarUrl = avatarUrlFromPath(owner.avatar_url);
 
+  const [liked, setLiked] = useState(liked_by_me);
+  const [likeCount, setLikeCount] = useState(like_count);
+  const [commentCount, setCommentCount] = useState(comment_count);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+
   const [open, setOpen] = useState(false);
+
+  const handleToggleLike = async () => {
+    const nextLiked = !liked;
+    setLiked(nextLiked);
+    setLikeCount((prev) => prev + (nextLiked ? 1 : -1));
+
+    try {
+      const res = await api.post(`/images/${id}/likes`);
+      const data = res.data?.data;
+      if (data) {
+        setLiked(Boolean(data.liked));
+        setLikeCount(Number(data.like_count ?? 0));
+      }
+    } catch {
+      setLiked((prev) => !prev);
+      setLikeCount((prev) => prev + (nextLiked ? -1 : 1));
+    }
+  };
+
+  const handleToggleComments = async () => {
+    const nextOpen = !commentsOpen;
+    setCommentsOpen(nextOpen);
+    if (!nextOpen || comments.length > 0) return;
+
+    try {
+      setLoadingComments(true);
+      const res = await api.get(`/images/${id}/comments`);
+      setComments(res.data || []);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!commentText.trim()) return;
+    setSubmittingComment(true);
+    try {
+      const res = await api.post(`/images/${id}/comments`, {
+        content: commentText.trim(),
+      });
+      setComments((prev) => [...prev, res.data]);
+      setCommentText("");
+      setCommentCount((prev) => prev + 1);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
 
   return (
     <>
@@ -109,19 +178,29 @@ export default function ImageCard({ id, image_url, created_at, owner, like_count
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex items-center gap-3 text-xs font-semibold text-slate-600">
-            <button type="button" className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 transition hover:bg-slate-100">
+            <button
+              type="button"
+              onClick={handleToggleLike}
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 transition hover:bg-slate-100 ${
+                liked ? "text-rose-600" : "text-slate-600"
+              }`}
+            >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M14 9l-2-2-6 6 2 2 6-6zM7 21h10a2 2 0 002-2V7" />
               </svg>
-              Like {like_count}
+              Like {likeCount}
             </button>
-            <button type="button" className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 transition hover:bg-slate-100">
+            <button
+              type="button"
+              onClick={handleToggleComments}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 transition hover:bg-slate-100"
+            >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M7 8h10M7 12h6m-7 7h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              Comment {comment_count}
+              Comment {commentCount}
             </button>
-            <button type="button" className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 transition hover:bg-slate-100">
+            <button type="button" className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 transition hover:bg-slate-100">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M12 5v10m0 0l-3-3m3 3l3-3" />
               </svg>
@@ -139,6 +218,62 @@ export default function ImageCard({ id, image_url, created_at, owner, like_count
             Report
           </button>
         </div>
+
+        {commentsOpen && (
+          <div className="border-t border-slate-100 px-3 py-3 sm:px-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Write a comment..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-brand/60 focus:ring-4 focus:ring-brand/10"
+              />
+              <button
+                type="button"
+                onClick={handleSubmitComment}
+                disabled={!commentText.trim() || submittingComment}
+                className="btn-primary px-4 py-2 text-xs disabled:pointer-events-none disabled:opacity-40 cursor-pointer"
+              >
+                Post
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-3">
+              {loadingComments ? (
+                <p className="text-xs text-slate-500">Loading comments...</p>
+              ) : comments.length === 0 ? (
+                <p className="text-xs text-slate-500">No comments yet.</p>
+              ) : (
+                comments.map((comment) => {
+                  const commentAvatar = avatarUrlFromPath(comment.user.avatar_url);
+                  return (
+                    <div key={comment.id} className="flex items-start gap-3">
+                      {commentAvatar ? (
+                        <img
+                          src={commentAvatar}
+                          alt={comment.user.username}
+                          className="h-8 w-8 rounded-full border border-slate-200 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600">
+                          {initialsFromName(comment.user.username)}
+                        </div>
+                      )}
+                      <div className="flex-1 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <span className="font-semibold text-slate-700">@{comment.user.username}</span>
+                          <span>{formatRelativeTime(comment.created_at)}</span>
+                        </div>
+                        <p className="mt-1 text-sm text-slate-700">{comment.content}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </article>
 
       {open && (

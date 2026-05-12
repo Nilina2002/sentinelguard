@@ -16,3 +16,4 @@ class ImageFeedItem(BaseModel):
     owner: ImageOwner
     like_count: int = 0
     comment_count: int = 0
+    liked_by_me: bool = False

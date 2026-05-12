@@ -1,5 +1,7 @@
 from .user import User
 from .image import Image
+from .image_like import ImageLike
+from .image_comment import ImageComment
 from .embedding_meta_data import EmbeddingMetadata
 from .report import Report
 from .report_match import ReportMatch
