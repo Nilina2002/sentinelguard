@@ -22,9 +22,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           pauseOnFocusLoss
           draggable
           pauseOnHover
-          theme="dark"
+          theme="light"
           toastClassName="!rounded-xl !shadow-lg !font-sans"
-          className="!top-4 !right-4"
+          className="!top-4 !right-4 !w-[min(92vw,360px)]"
         />
       </BrowserRouter>
     </AuthProvider>

@@ -21,87 +21,106 @@ export default function Login() {
       const userRes = await api.get("/users/me");
       setUser(userRes.data);
 
-      toast.success("Welcome back");
+      toast.success("Signed in successfully.");
       navigate("/home");
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(`Login failed: ${ax.response?.data?.message || ax.message || "Unknown error"}`);
+      toast.error(`Unable to sign in. ${ax.response?.data?.message || ax.message || "Please try again."}`);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <Loading message="Signing you in…" fullScreen />;
+  if (loading) return <Loading message="Loading…" fullScreen />;
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-slate-950 px-4 py-12">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "radial-gradient(ellipse 80% 50% at 50% -20%, rgb(45 212 191 / 0.35), transparent), radial-gradient(ellipse 60% 40% at 100% 100%, rgb(6 182 212 / 0.2), transparent)",
-        }}
-      />
-      <div className="relative w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-600 shadow-lg shadow-teal-900/40">
-            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">SentinelGuard</h1>
-          <p className="mt-2 text-sm text-slate-400">Sign in to access the community feed and reporting tools.</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-8 shadow-2xl shadow-black/40 backdrop-blur-md">
-          <h2 className="text-lg font-semibold text-white">Sign in</h2>
-          <p className="mt-1 text-sm text-slate-500">Use the email and password you registered with.</p>
-
-          <div className="mt-6 space-y-4">
-            <div>
-              <label htmlFor="login-email" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400">
-                Email
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                autoComplete="email"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none ring-teal-500/0 transition focus:border-teal-500/50 focus:ring-4 focus:ring-teal-500/15"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+    <div className="relative min-h-screen overflow-hidden bg-slate-50">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-sky-100/80 blur-3xl" />
+        <div className="absolute right-0 top-1/3 h-80 w-80 rounded-full bg-emerald-100/70 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-indigo-100/60 blur-3xl" />
+      </div>
+      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-12">
+        <div className="grid w-full gap-10 lg:grid-cols-[1.05fr,0.95fr]">
+          <div className="order-2 flex flex-col justify-center lg:order-1">
+            <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 3l7 4v5c0 4.418-3.134 8.418-7 9-3.866-.582-7-4.582-7-9V7l7-4z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">SentinelGuard</p>
+                <p className="text-sm font-semibold text-slate-900">Verified Community Feed</p>
+              </div>
             </div>
-            <div>
-              <label htmlFor="login-password" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400">
-                Password
-              </label>
-              <input
-                id="login-password"
-                type="password"
-                autoComplete="current-password"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3 text-sm text-white placeholder:text-slate-600 outline-none ring-teal-500/0 transition focus:border-teal-500/50 focus:ring-4 focus:ring-teal-500/15"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+            {/* <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+              Welcome back to your safety network
+            </h1> */}
           </div>
 
-          <button
-            type="button"
-            onClick={handleLogin}
-            className="mt-6 w-full rounded-xl bg-gradient-to-r from-teal-500 to-cyan-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-900/30 transition hover:from-teal-400 hover:to-cyan-500 focus:outline-none focus:ring-4 focus:ring-teal-500/30"
-          >
-            Sign in
-          </button>
+          <div className="order-1 flex items-center justify-center lg:order-2">
+            <div className="auth-card w-full max-w-md">
+              <h2 className="text-xl font-semibold text-slate-900 text-align-center text-center">Login</h2>
+              <p className="mt-1 text-sm text-slate-500 text-center font-semibold">Welcome back to your safety network</p>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
-            New here?{" "}
-            <Link to="/register" className="font-semibold text-teal-400 hover:text-teal-300">
-              Create an account
-            </Link>
-          </p>
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label htmlFor="login-email" className="auth-label">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7l9 6 9-6M4 7h16v10H4z" />
+                      </svg>
+                    </span>
+                    <input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      className="auth-input pl-11"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="login-password" className="auth-label">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 11h10v8H7zM9 11V8a3 3 0 016 0v3" />
+                      </svg>
+                    </span>
+                    <input
+                      id="login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      className="auth-input pl-11"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" onClick={handleLogin} className="btn-primary mt-6 w-full cursor-pointer">
+                Login
+              </button>
+
+              <p className="mt-6 text-center text-sm text-slate-500">
+                New here?{" "}
+                <Link to="/register" className="font-semibold text-brand hover:text-brand-hover">
+                  Create an account
+                </Link>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

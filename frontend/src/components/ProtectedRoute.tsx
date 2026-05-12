@@ -6,7 +6,7 @@ import Loading from "./Loading";
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
 
-  if (loading) return <Loading message="Checking your session…" fullScreen />;
+  if (loading) return <Loading message="Loading…" fullScreen />;
 
   if (!user) return <Navigate to="/login" replace />;
 

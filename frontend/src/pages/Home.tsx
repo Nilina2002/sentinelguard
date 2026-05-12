@@ -7,6 +7,15 @@ import Loading from "../components/Loading";
 interface ImageType {
   id: number;
   image_url: string;
+  created_at: string;
+  owner: {
+    id: number;
+    email: string;
+    username: string;
+    avatar_url: string | null;
+  };
+  like_count: number;
+  comment_count: number;
 }
 
 export default function Home() {
@@ -18,7 +27,7 @@ export default function Home() {
       const res = await api.get("/images");
       setImages(res.data);
     } catch {
-      toast.error("Could not load the feed. Try again in a moment.");
+      toast.error("Unable to load the feed. Please try again shortly.");
     } finally {
       setLoading(false);
     }
@@ -31,35 +40,40 @@ export default function Home() {
   if (loading) return <Loading message="Loading your feed…" />;
 
   return (
-    <div className="space-y-8">
-      <header className="rounded-2xl border border-slate-200/80 bg-surface-elevated/80 p-6 shadow-sm shadow-slate-200/50 backdrop-blur-sm sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mx-auto w-full max-w-5xl space-y-8">
+      <header className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-20 top-6 h-40 w-40 rounded-full bg-sky-100/80 blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 h-36 w-36 rounded-full bg-emerald-100/60 blur-3xl" />
+        </div>
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-teal-600">Community feed</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Home</h1>
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-slate-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Community feed
+            </div>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-              Browse shared images. If you need to request removal of non-consensual intimate imagery (NCII), use{" "}
-              <strong className="font-semibold text-slate-800">Report</strong> on a post to start the verification flow.
+              Browse shared images. To request removal of NCII, select <strong className="font-semibold text-slate-800">Report</strong> on a post to start the verification flow.
             </p>
           </div>
-          <div className="shrink-0 rounded-xl border border-teal-100 bg-teal-50/90 px-4 py-3 text-xs leading-relaxed text-teal-900 sm:max-w-xs">
-            <span className="font-semibold">Safety note:</span> Reporting is serious. Only submit claims when you have a legitimate removal request and required evidence.
+          <div className="shrink-0 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-xs leading-relaxed text-emerald-900 sm:max-w-xs">
+            <span className="font-semibold">Safety note:</span> Only submit claims when you have a legitimate removal request and required evidence.
           </div>
         </div>
       </header>
 
       {images.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-surface-elevated/60 px-6 py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center shadow-sm">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
             <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-slate-800">No images yet</h2>
-          <p className="mt-2 max-w-sm text-sm text-slate-500">Upload a photo from the sidebar to see it appear here for everyone signed in.</p>
+          <h2 className="text-lg font-semibold text-slate-900">No posts yet</h2>
+          <p className="mt-2 max-w-sm text-sm text-slate-500">Upload a photo from the sidebar to publish your first post.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mx-auto w-full max-w-3xl space-y-6">
           {images.map((img) => (
             <ImageCard key={img.id} {...img} />
           ))}

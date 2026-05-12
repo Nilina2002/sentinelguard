@@ -9,6 +9,7 @@ import uuid
 from app.api.deps import get_current_user
 from app.models import User, EmbeddingMetadata
 from app.schemas.common import APIResponse
+from app.schemas.image import ImageFeedItem, ImageOwner
 from app.services.ai_service import is_blocklisted, upsert_image_embedding
 
 UPLOAD_DIR = "uploads"
@@ -61,10 +62,34 @@ def upload_image(
     
     return APIResponse(success=True, message="Image uploaded successfully")
 
-@router.get("/")
+@router.get("/", response_model=list[ImageFeedItem])
 def get_images(db: Session = Depends(get_db)):
-    images = db.exec(select(Image).where(Image.is_deleted == False)).all()
-    return images
+    stmt = (
+        select(Image, User)
+        .join(User, User.id == Image.user_id)
+        .where(Image.is_deleted == False)
+        .order_by(Image.created_at.desc())
+    )
+    rows = db.exec(stmt).all()
+
+    items: list[ImageFeedItem] = []
+    for image, user in rows:
+        items.append(
+            ImageFeedItem(
+                id=image.id,
+                image_url=image.image_url,
+                created_at=image.created_at,
+                owner=ImageOwner(
+                    id=user.id,
+                    email=user.email,
+                    username=user.username,
+                    avatar_url=user.avatar_url,
+                ),
+                like_count=0,
+                comment_count=0,
+            )
+        )
+    return items
 
 @router.delete("/{image_id}")
 def delete_image(image_id: int, db: Session = Depends(get_db)):

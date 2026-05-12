@@ -49,7 +49,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
 
       if (!skipVerification) {
         if (!capturedImage) {
-          toast.error("Capture a selfie first to verify your identity.");
+          toast.error("Please capture a selfie to verify your identity.");
           return;
         }
 
@@ -63,13 +63,13 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
         });
 
         if (!response.data.success) {
-          toast.error("Face verification did not pass. Try a clearer, well-lit selfie.");
+          toast.error("Verification failed. Try a clearer, well-lit selfie.");
           return;
         }
       }
 
       if (!claimImageFile) {
-        toast.error("Upload the claim image before submitting.");
+        toast.error("Please upload the claim image before submitting.");
         return;
       }
 
@@ -107,20 +107,20 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="report-modal-title"
     >
-      <div className="relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-surface-elevated shadow-2xl shadow-slate-900/25">
+      <div className="relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/25">
         {loading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/85 backdrop-blur-sm">
-            <div className="h-10 w-10 rounded-full border-2 border-teal-200 border-t-teal-600 animate-spin" />
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl bg-white/90 backdrop-blur-sm">
+            <div className="h-10 w-10 rounded-full border-2 border-brand/20 border-t-brand animate-spin" />
             <p className="mt-3 text-sm font-medium text-slate-600">Submitting report…</p>
           </div>
         )}
 
-        <div className="sticky top-0 z-[1] flex items-start justify-between gap-4 border-b border-slate-100 bg-surface-elevated/95 px-5 py-4 backdrop-blur-sm sm:px-6">
+        <div className="sticky top-0 z-[1] flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
           <div>
             <h2 id="report-modal-title" className="text-lg font-bold tracking-tight text-slate-900">
               Report content
@@ -146,10 +146,10 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
             <img src={imageUrl} alt="Reported content" className="max-h-52 w-full object-contain" />
           </div>
 
-          <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+          <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Claim image</h3>
             <p className="mt-1 text-xs text-slate-500">Required — the image you are asserting rights over or matching for removal.</p>
-            <label className="mt-3 flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white px-3 py-6 text-sm font-medium text-teal-700 transition hover:border-teal-400 hover:bg-teal-50/50">
+            <label className="mt-3 flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-3 py-6 text-sm font-medium text-brand transition hover:border-brand/60 hover:bg-brand/5">
               <input type="file" accept="image/*" onChange={handleClaimImageChange} className="sr-only" />
               {claimImageFile ? "Replace file" : "Choose file"}
             </label>
@@ -163,7 +163,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
               <button
                 type="button"
                 onClick={() => setIsCameraOn(true)}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-teal-500 hover:to-cyan-500"
+                className="btn-primary flex-1 gap-2"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -174,7 +174,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
               <button
                 type="button"
                 onClick={handleSkipVerification}
-                className="inline-flex flex-1 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
+                className="btn-ghost flex-1 text-amber-900 border-amber-200 bg-amber-50 hover:border-amber-300 hover:bg-amber-100"
               >
                 Skip (dev / test)
               </button>
@@ -188,21 +188,21 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
           )}
 
           {capturedImage && (
-            <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-4 text-center">
-              <p className="text-xs font-medium uppercase tracking-wide text-teal-800">Selfie captured</p>
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-center">
+              <p className="text-xs font-medium uppercase tracking-wide text-emerald-800">Selfie captured</p>
               <img src={capturedImage} alt="Your selfie" className="mx-auto mt-3 h-28 w-28 rounded-full border-4 border-white object-cover shadow-md" />
               <div className="mt-4 flex justify-center gap-2">
                 <button
                   type="button"
                   onClick={() => setCapturedImage(null)}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  className="btn-ghost"
                 >
                   Retake
                 </button>
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  className="btn-primary"
                 >
                   Submit report
                 </button>
