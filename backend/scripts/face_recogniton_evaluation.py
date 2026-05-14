@@ -4,6 +4,8 @@ import itertools
 import pandas as pd
 import numpy as np
 import face_recognition
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from sklearn.metrics import (
     accuracy_score,
@@ -12,7 +14,8 @@ from sklearn.metrics import (
     f1_score,
     confusion_matrix,
     roc_auc_score,
-    classification_report
+    classification_report,
+    roc_curve
 )
 
 # =========================
@@ -23,6 +26,10 @@ IMAGE_FOLDER = "dataset/faces"
 CSV_PATH = "dataset/labels.csv"
 
 TOLERANCE = 0.6
+
+# Folder to save result images
+RESULTS_FOLDER = "results/face_recognition_evaluation"
+os.makedirs(RESULTS_FOLDER, exist_ok=True)
 
 # =========================
 # LOAD CSV
@@ -97,7 +104,7 @@ all_labels = list(label_groups.keys())
 
 impostor_pairs = []
 
-for _ in range(len(genuine_pairs)):
+while len(impostor_pairs) < len(genuine_pairs):
 
     l1, l2 = random.sample(all_labels, 2)
 
@@ -123,6 +130,9 @@ y_true = []
 y_pred = []
 y_scores = []
 
+genuine_scores = []
+impostor_scores = []
+
 print("Running comparisons...")
 
 for img1_name, img2_name, label in all_pairs:
@@ -142,6 +152,11 @@ for img1_name, img2_name, label in all_pairs:
     y_true.append(label)
     y_pred.append(prediction)
     y_scores.append(similarity)
+
+    if label == 1:
+        genuine_scores.append(similarity)
+    else:
+        impostor_scores.append(similarity)
 
 # =========================
 # METRICS
@@ -183,3 +198,182 @@ print(cm)
 
 print("\nClassification Report:")
 print(classification_report(y_true, y_pred))
+
+# =========================
+# SAVE METRICS TABLE
+# =========================
+
+metrics_df = pd.DataFrame({
+    "Metric": [
+        "Accuracy",
+        "Precision",
+        "Recall",
+        "F1 Score",
+        "ROC AUC",
+        "FAR",
+        "FRR"
+    ],
+    "Value": [
+        accuracy,
+        precision,
+        recall,
+        f1,
+        auc,
+        far,
+        frr
+    ]
+})
+
+plt.figure(figsize=(8, 4))
+plt.axis('off')
+
+table = plt.table(
+    cellText=np.round(metrics_df.values, 4),
+    colLabels=metrics_df.columns,
+    loc='center'
+)
+
+table.auto_set_font_size(False)
+table.set_fontsize(12)
+table.scale(1.2, 1.8)
+
+plt.title("Face Recognition Evaluation Metrics", fontsize=14)
+
+metrics_path = os.path.join(RESULTS_FOLDER, "metrics_table.png")
+
+plt.savefig(metrics_path, bbox_inches='tight')
+plt.close()
+
+# =========================
+# CONFUSION MATRIX PLOT
+# =========================
+
+plt.figure(figsize=(6, 5))
+
+sns.heatmap(
+    cm,
+    annot=True,
+    fmt='d',
+    cmap='Blues',
+    xticklabels=["Impostor", "Genuine"],
+    yticklabels=["Impostor", "Genuine"]
+)
+
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix")
+
+cm_path = os.path.join(RESULTS_FOLDER, "confusion_matrix.png")
+
+plt.savefig(cm_path, bbox_inches='tight')
+plt.close()
+
+# =========================
+# ROC CURVE
+# =========================
+
+fpr, tpr, thresholds = roc_curve(y_true, y_scores)
+
+plt.figure(figsize=(6, 5))
+
+plt.plot(fpr, tpr, label=f"AUC = {auc:.4f}")
+plt.plot([0, 1], [0, 1], linestyle='--')
+
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("ROC Curve")
+plt.legend()
+
+roc_path = os.path.join(RESULTS_FOLDER, "roc_curve.png")
+
+plt.savefig(roc_path, bbox_inches='tight')
+plt.close()
+
+# =========================
+# SIMILARITY DISTRIBUTION
+# =========================
+
+plt.figure(figsize=(8, 5))
+
+plt.hist(
+    genuine_scores,
+    bins=30,
+    alpha=0.6,
+    label="Genuine Pairs"
+)
+
+plt.hist(
+    impostor_scores,
+    bins=30,
+    alpha=0.6,
+    label="Impostor Pairs"
+)
+
+plt.axvline(
+    x=(1 - TOLERANCE),
+    linestyle='--',
+    label='Threshold'
+)
+
+plt.xlabel("Similarity Score")
+plt.ylabel("Frequency")
+plt.title("Similarity Score Distribution")
+plt.legend()
+
+dist_path = os.path.join(RESULTS_FOLDER, "similarity_distribution.png")
+
+plt.savefig(dist_path, bbox_inches='tight')
+plt.close()
+
+# =========================
+# BAR CHART OF METRICS
+# =========================
+
+metric_names = [
+    "Accuracy",
+    "Precision",
+    "Recall",
+    "F1",
+    "AUC"
+]
+
+metric_values = [
+    accuracy,
+    precision,
+    recall,
+    f1,
+    auc
+]
+
+plt.figure(figsize=(8, 5))
+
+bars = plt.bar(metric_names, metric_values)
+
+plt.ylim(0, 1)
+
+for bar in bars:
+    yval = bar.get_height()
+    plt.text(
+        bar.get_x() + bar.get_width()/2,
+        yval + 0.01,
+        f"{yval:.3f}",
+        ha='center'
+    )
+
+plt.title("Performance Metrics")
+
+bar_path = os.path.join(RESULTS_FOLDER, "metrics_bar_chart.png")
+
+plt.savefig(bar_path, bbox_inches='tight')
+plt.close()
+
+# =========================
+# FINAL MESSAGE
+# =========================
+
+print("\nSaved Result Images:")
+print(metrics_path)
+print(cm_path)
+print(roc_path)
+print(dist_path)
+print(bar_path)

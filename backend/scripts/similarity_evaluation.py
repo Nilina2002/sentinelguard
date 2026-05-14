@@ -1,10 +1,8 @@
 import os
 from typing import List
-
 import cv2
 import numpy as np
 import pandas as pd
-
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -12,9 +10,11 @@ from sklearn.metrics import (
     f1_score,
     confusion_matrix,
     roc_auc_score,
+    roc_curve
 )
-
 from deepface import DeepFace
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 # =========================================================
@@ -22,15 +22,14 @@ from deepface import DeepFace
 # =========================================================
 
 LFW_DIR = "lfw/lfw-deepfunneled/lfw-deepfunneled"
-
 PAIRS_CSV = "lfw/pairs.csv"
-
 HANDCRAFTED_THRESHOLD = 0.82
-
 DEEPFACE_MODEL = "ArcFace"
-
 TARGET_SIZE = 64
 EMBEDDING_DIM = 512
+RESULTS_FOLDER = "results/similarity_evaluation"
+
+os.makedirs(RESULTS_FOLDER, exist_ok=True)
 
 
 # =========================================================
@@ -511,6 +510,9 @@ def evaluate_system(
     y_pred = []
     y_scores = []
 
+    genuine_scores = []
+    impostor_scores = []
+
     skipped = 0
 
     for path1, path2, label in all_pairs:
@@ -537,6 +539,11 @@ def evaluate_system(
         y_true.append(label)
         y_pred.append(prediction)
         y_scores.append(similarity)
+
+        if label == 1:
+            genuine_scores.append(similarity)
+        else:
+            impostor_scores.append(similarity)
 
     accuracy = accuracy_score(
         y_true,
@@ -588,6 +595,216 @@ def evaluate_system(
     print("\nConfusion Matrix:")
     print(cm)
 
+    # =====================================================
+    # SAVE METRICS TABLE
+    # =====================================================
+
+    metrics_df = pd.DataFrame({
+        "Metric": [
+            "Accuracy",
+            "Precision",
+            "Recall",
+            "F1 Score",
+            "ROC AUC",
+            "FAR",
+            "FRR"
+        ],
+        "Value": [
+            accuracy,
+            precision,
+            recall,
+            f1,
+            auc,
+            far,
+            frr
+        ]
+    })
+
+    plt.figure(figsize=(8, 4))
+    plt.axis('off')
+
+    table = plt.table(
+        cellText=np.round(metrics_df.values, 4),
+        colLabels=metrics_df.columns,
+        loc='center'
+    )
+
+    table.auto_set_font_size(False)
+    table.set_fontsize(12)
+    table.scale(1.2, 1.8)
+
+    plt.title(f"{system_name} Metrics")
+
+    plt.savefig(
+        os.path.join(
+            RESULTS_FOLDER,
+            f"{system_name}_metrics_table.png"
+        ),
+        bbox_inches='tight'
+    )
+
+    plt.close()
+
+    # =====================================================
+    # CONFUSION MATRIX
+    # =====================================================
+
+    plt.figure(figsize=(6, 5))
+
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt='d',
+        cmap='Blues',
+        xticklabels=["Impostor", "Genuine"],
+        yticklabels=["Impostor", "Genuine"]
+    )
+
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    plt.title(f"{system_name} Confusion Matrix")
+
+    plt.savefig(
+        os.path.join(
+            RESULTS_FOLDER,
+            f"{system_name}_confusion_matrix.png"
+        ),
+        bbox_inches='tight'
+    )
+
+    plt.close()
+
+    # =====================================================
+    # ROC CURVE
+    # =====================================================
+
+    fpr, tpr, _ = roc_curve(
+        y_true,
+        y_scores
+    )
+
+    plt.figure(figsize=(6, 5))
+
+    plt.plot(
+        fpr,
+        tpr,
+        label=f"AUC = {auc:.4f}"
+    )
+
+    plt.plot(
+        [0, 1],
+        [0, 1],
+        linestyle='--'
+    )
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title(f"{system_name} ROC Curve")
+    plt.legend()
+
+    plt.savefig(
+        os.path.join(
+            RESULTS_FOLDER,
+            f"{system_name}_roc_curve.png"
+        ),
+        bbox_inches='tight'
+    )
+
+    plt.close()
+
+    # =====================================================
+    # SIMILARITY DISTRIBUTION
+    # =====================================================
+
+    plt.figure(figsize=(8, 5))
+
+    plt.hist(
+        genuine_scores,
+        bins=30,
+        alpha=0.6,
+        label="Genuine"
+    )
+
+    plt.hist(
+        impostor_scores,
+        bins=30,
+        alpha=0.6,
+        label="Impostor"
+    )
+
+    plt.axvline(
+        x=threshold,
+        linestyle='--',
+        label='Threshold'
+    )
+
+    plt.xlabel("Similarity Score")
+    plt.ylabel("Frequency")
+    plt.title(f"{system_name} Similarity Distribution")
+    plt.legend()
+
+    plt.savefig(
+        os.path.join(
+            RESULTS_FOLDER,
+            f"{system_name}_distribution.png"
+        ),
+        bbox_inches='tight'
+    )
+
+    plt.close()
+
+    # =====================================================
+    # METRIC BAR CHART
+    # =====================================================
+
+    metric_names = [
+        "Accuracy",
+        "Precision",
+        "Recall",
+        "F1",
+        "AUC"
+    ]
+
+    metric_values = [
+        accuracy,
+        precision,
+        recall,
+        f1,
+        auc
+    ]
+
+    plt.figure(figsize=(8, 5))
+
+    bars = plt.bar(
+        metric_names,
+        metric_values
+    )
+
+    plt.ylim(0, 1)
+
+    for bar in bars:
+
+        yval = bar.get_height()
+
+        plt.text(
+            bar.get_x() + bar.get_width()/2,
+            yval + 0.01,
+            f"{yval:.3f}",
+            ha='center'
+        )
+
+    plt.title(f"{system_name} Performance Metrics")
+
+    plt.savefig(
+        os.path.join(
+            RESULTS_FOLDER,
+            f"{system_name}_bar_chart.png"
+        ),
+        bbox_inches='tight'
+    )
+
+    plt.close()
+
     return {
         "System": system_name,
         "Accuracy": accuracy,
@@ -631,3 +848,68 @@ results_df = pd.DataFrame([
 ])
 
 print(results_df)
+
+# =========================================================
+# FINAL COMPARISON CHART
+# =========================================================
+
+comparison_metrics = [
+    "Accuracy",
+    "Precision",
+    "Recall",
+    "F1",
+    "AUC"
+]
+
+x = np.arange(len(comparison_metrics))
+width = 0.35
+
+handcrafted_values = [
+    handcrafted_results[m]
+    for m in comparison_metrics
+]
+
+deepface_values = [
+    deepface_results[m]
+    for m in comparison_metrics
+]
+
+plt.figure(figsize=(10, 6))
+
+plt.bar(
+    x - width/2,
+    handcrafted_values,
+    width,
+    label="Handcrafted"
+)
+
+plt.bar(
+    x + width/2,
+    deepface_values,
+    width,
+    label="ArcFace"
+)
+
+plt.xticks(
+    x,
+    comparison_metrics
+)
+
+plt.ylim(0, 1)
+
+plt.ylabel("Score")
+plt.title("System Performance Comparison")
+
+plt.legend()
+
+plt.savefig(
+    os.path.join(
+        RESULTS_FOLDER,
+        "final_system_comparison.png"
+    ),
+    bbox_inches='tight'
+)
+
+plt.close()
+
+print("\nSaved result images to results/")
