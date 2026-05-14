@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.env
+app.log
+alembic/versions/__pycache__/
+*.mako
+uploads/*
+dataset/
+lfw/
+chroma_db/
+.sqlite3
