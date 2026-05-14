@@ -29,14 +29,14 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCancel }) =>
         <button
           type="button"
           onClick={capture}
-          className="inline-flex flex-1 min-w-[120px] items-center justify-center rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-teal-500 hover:to-cyan-500"
+          className="inline-flex flex-1 min-w-[120px] items-center justify-center cursor-pointer rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-teal-500 hover:to-cyan-500"
         >
           Capture
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex flex-1 min-w-[120px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          className="inline-flex flex-1 min-w-[120px] items-center justify-center cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
           Cancel
         </button>
