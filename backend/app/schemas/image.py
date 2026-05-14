@@ -14,6 +14,7 @@ class ImageFeedItem(BaseModel):
     image_url: str
     created_at: datetime
     owner: ImageOwner
+    is_deleted: bool = False
     like_count: int = 0
     comment_count: int = 0
     liked_by_me: bool = False

@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { base64ToFile } from "../utils/image";
 import api from "../api/client";
 import { generateCanonicalEmbedding } from "../utils/embedding";
+import Loading from "../components/Loading";
 
 type ReportModalProps = {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
   const [claimImageFile, setClaimImageFile] = useState<File | null>(null);
   const [claimImagePreview, setClaimImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>("Preparing your report...");
 
   if (!isOpen) return null;
 
@@ -41,6 +43,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
   const submitReport = async (skipVerification: boolean) => {
     try {
       setLoading(true);
+      setLoadingMessage("Preparing report data...");
 
       const res = await fetch(imageUrl);
       const blob = await res.blob();
@@ -53,6 +56,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
           return;
         }
 
+        setLoadingMessage("Verifying identity...");
         const selfieFile = base64ToFile(capturedImage, "selfie.png");
         const formData = new FormData();
         formData.append("selfie", selfieFile);
@@ -63,7 +67,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
         });
 
         if (!response.data.success) {
-          toast.error("Verification failed. Try a clearer, well-lit selfie.");
+          toast.error(response.data.message || "Verification failed. Try a clearer, well-lit selfie.");
           return;
         }
         toast.success("Identity verified successfully.");
@@ -74,20 +78,30 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
         return;
       }
 
+      setLoadingMessage("Creating report record...");
       const reportRes = await api.post("/reports/");
       const reportId = reportRes.data.id;
 
+      setLoadingMessage("Generating secure match embedding...");
       const embedding = await generateCanonicalEmbedding(queryFile);
+      setLoadingMessage("Submitting for match analysis...");
       const embedRes = await api.post(`/reports/${reportId}/embedding`, {
-        verified: true,
+        verified: !skipVerification,
         embedding,
         target_image_id: imageId,
       });
 
+      if (!embedRes.data?.success) {
+        toast.error(embedRes.data?.message || "Report submitted, but matching did not complete.");
+        return;
+      }
+
       const matchesFound = embedRes.data?.data?.matches_found ?? 0;
-      toast.success(skipVerification ? "Report submitted (verification skipped)." : "Report submitted and verified.");
+      toast.success("Report submitted and verified.");
       if (matchesFound > 0) {
         toast.info("Claim image matched. The reported image was removed.");
+      } else {
+        toast.info("No strong match was found. Your report has been recorded.");
       }
       onClose();
       window.location.reload();
@@ -102,6 +116,8 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
     await submitReport(false);
   };
 
+  if (loading) return <Loading message={loadingMessage || "Loading..."} />;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
@@ -110,13 +126,6 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
       aria-labelledby="report-modal-title"
     >
       <div className="relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/25">
-        {loading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl bg-white/90 backdrop-blur-sm">
-            <div className="h-10 w-10 rounded-full border-2 border-brand/20 border-t-brand animate-spin" />
-            <p className="mt-3 text-sm font-medium text-slate-600">Submitting report…</p>
-          </div>
-        )}
-
         <div className="sticky top-0 z-[1] flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
           <div>
             <h2 id="report-modal-title" className="text-lg font-bold tracking-tight text-slate-900">
@@ -160,7 +169,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
               <button
                 type="button"
                 onClick={() => setIsCameraOn(true)}
-                className="btn-primary flex-1 gap-2"
+                className="btn-primary flex-1 gap-2 cursor-pointer"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -185,14 +194,14 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
                 <button
                   type="button"
                   onClick={() => setCapturedImage(null)}
-                  className="btn-ghost"
+                  className="btn-ghost cursor-pointer"
                 >
                   Retake
                 </button>
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="btn-primary"
+                  className="btn-primary cursor-pointer"
                 >
                   Submit report
                 </button>

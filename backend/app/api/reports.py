@@ -6,6 +6,7 @@ import numpy as np
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
+from sqlalchemy import func
 
 from app.api.deps import get_db, get_current_user
 from app.models import User
@@ -18,8 +19,10 @@ from app.models.report_match import ReportMatch
 from app.schemas.common import APIResponse
 from app.services.ai_service import (
     SIMILARITY_THRESHOLD,
+    TOP_K_DEFAULT,
     add_to_blocklist,
     get_image_embedding,
+    search_similar_images,
     normalize_embedding,
 )
 
@@ -33,6 +36,14 @@ class EmbeddingPayload(BaseModel):
     threshold: float = SIMILARITY_THRESHOLD
 
 
+class ReportHistoryItem(BaseModel):
+    id: int
+    status: str
+    similarity_score: float | None = None
+    matches_found: int = 0
+    created_at: str
+
+
 @router.post("/")
 def create_report(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     report = Report(reporter_id=user.id)
@@ -41,6 +52,39 @@ def create_report(user: User = Depends(get_current_user), db: Session = Depends(
     db.refresh(report)
 
     return report
+
+
+@router.get("/me", response_model=list[ReportHistoryItem])
+def list_my_reports(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    match_counts = (
+        select(ReportMatch.report_id, func.count(ReportMatch.id).label("matches_found"))
+        .group_by(ReportMatch.report_id)
+        .subquery()
+    )
+
+    stmt = (
+        select(
+            Report,
+            func.coalesce(match_counts.c.matches_found, 0),
+        )
+        .outerjoin(match_counts, match_counts.c.report_id == Report.id)
+        .where(Report.reporter_id == user.id)
+        .order_by(Report.created_at.desc())
+    )
+    rows = db.exec(stmt).all()
+
+    items: list[ReportHistoryItem] = []
+    for report, matches_found in rows:
+        items.append(
+            ReportHistoryItem(
+                id=report.id,
+                status=report.status.value,
+                similarity_score=report.similarity_score,
+                matches_found=int(matches_found or 0),
+                created_at=report.created_at.isoformat(),
+            )
+        )
+    return items
 
 @router.post("/{report_id}/embedding")
 def submit_embedding(
@@ -65,55 +109,59 @@ def submit_embedding(
     if target_image.is_deleted:
         return APIResponse(success=False, message="Target image already deleted")
 
-    embedding_meta = db.exec(
-        select(EmbeddingMetadata).where(EmbeddingMetadata.image_id == target_image.id)
-    ).first()
-    if not embedding_meta:
-        return APIResponse(success=False, message="Target image has no embedding")
-
-    target_vector = get_image_embedding(embedding_meta.vector_id)
-    if not target_vector:
-        return APIResponse(success=False, message="Target embedding not found in vector store")
-
     query_vector = normalize_embedding(payload.embedding)
-    similarity = float(np.dot(np.array(query_vector, dtype=np.float32), np.array(target_vector, dtype=np.float32)))
+    matches = search_similar_images(query_vector, top_k=TOP_K_DEFAULT)
+    qualifying = [match for match in matches if match.get("score", 0) >= threshold]
 
-    if similarity < threshold:
+    if not qualifying:
         report.status = "rejected"
-        report.similarity_score = similarity
+        report.similarity_score = None
         db.commit()
         return APIResponse(
             success=False,
-            message="Claim image does not match the reported image strongly enough",
-            data={"matches_found": 0, "images_deleted": 0, "similarity": similarity},
+            message="No similar matches were found above the threshold",
+            data={"matches_found": 0, "images_deleted": 0},
         )
 
     report.status = "verified"
-    report.similarity_score = similarity
+    best_score = max(match.get("score", 0) for match in qualifying)
+    report.similarity_score = best_score
 
-    existing = db.exec(
-        select(ReportMatch).where(
-            ReportMatch.report_id == report_id,
-            ReportMatch.image_id == target_image.id,
-        )
-    ).first()
-    if not existing:
-        db.add(
-            ReportMatch(
-                report_id=report_id,
-                image_id=target_image.id,
-                similarity_score=similarity,
+    images_deleted = 0
+    for match in qualifying:
+        image_id = int(match.get("image_id", 0))
+        vector_id = str(match.get("vector_id", ""))
+        similarity = float(match.get("score", 0))
+
+        image = db.get(Image, image_id)
+        if not image or image.is_deleted or image.user_id == report.reporter_id:
+            continue
+
+        existing = db.exec(
+            select(ReportMatch).where(
+                ReportMatch.report_id == report_id,
+                ReportMatch.image_id == image_id,
             )
-        )
+        ).first()
+        if not existing:
+            db.add(
+                ReportMatch(
+                    report_id=report_id,
+                    image_id=image_id,
+                    similarity_score=similarity,
+                )
+            )
 
-    target_image.is_deleted = True
-    db.add(DeletionLog(image_id=target_image.id, report_id=report_id))
-    db.add(Blocklist(vector_id=embedding_meta.vector_id, reason="ncii"))
-    add_to_blocklist(
-        vector_id=embedding_meta.vector_id,
-        embedding=target_vector,
-        reason="ncii",
-    )
+        image.is_deleted = True
+        db.add(DeletionLog(image_id=image_id, report_id=report_id))
+        if vector_id:
+            db.add(Blocklist(vector_id=vector_id, reason="ncii"))
+            add_to_blocklist(
+                vector_id=vector_id,
+                embedding=get_image_embedding(vector_id) or query_vector,
+                reason="ncii",
+            )
+        images_deleted += 1
 
     report.status = "processed"
     db.commit()
@@ -121,7 +169,11 @@ def submit_embedding(
     return APIResponse(
         success=True,
         message="Claim verified and image removed",
-        data={"matches_found": 1, "images_deleted": 1, "similarity": similarity},
+        data={
+            "matches_found": len(qualifying),
+            "images_deleted": images_deleted,
+            "similarity": best_score,
+        },
     )
 
 @router.post("/{report_id}/match")

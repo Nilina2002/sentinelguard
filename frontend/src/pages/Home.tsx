@@ -3,11 +3,13 @@ import api from "../api/client";
 import ImageCard from "../components/ImageCard";
 import { toast } from "react-toastify";
 import Loading from "../components/Loading";
+import { useAuth } from "../context/AuthContext";
 
 interface ImageType {
   id: number;
   image_url: string;
   created_at: string;
+  is_deleted: boolean;
   owner: {
     id: number;
     email: string;
@@ -20,8 +22,10 @@ interface ImageType {
 }
 
 export default function Home() {
+  const { user } = useAuth();
   const [images, setImages] = useState<ImageType[]>([]);
   const [loading, setLoading] = useState(true);
+  const currentUserId = (user?.data?.id ?? user?.id ?? null) as number | null;
 
   const fetchImages = async () => {
     try {
@@ -76,7 +80,7 @@ export default function Home() {
       ) : (
         <div className="mx-auto w-full max-w-3xl space-y-6">
           {images.map((img) => (
-            <ImageCard key={img.id} {...img} />
+            <ImageCard key={img.id} {...img} currentUserId={currentUserId} />
           ))}
         </div>
       )}
