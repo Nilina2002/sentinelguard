@@ -80,7 +80,7 @@ export default function Register() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">SnapSafe</p>
-                <p className="text-sm font-bold text-slate-900">Powered by SentinelGuard</p>
+                <p className="text-sm font-bold text-slate-900">Powered by SentinelGuard Privacy Engine</p>
               </div>
             </div>
             {/* <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">

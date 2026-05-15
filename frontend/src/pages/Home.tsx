@@ -60,6 +60,9 @@ export default function Home() {
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
               Browse shared images. To request removal of NCII, select <strong className="font-semibold text-slate-800">Report</strong> on a post to start the verification flow.
             </p>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+              Powered by the <span className="font-semibold">SentinelGuard Privacy Engine</span>
+            </p>
           </div>
           <div className="shrink-0 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-xs leading-relaxed text-emerald-900 sm:max-w-xs">
             <span className="font-semibold">Safety note:</span> Only submit claims when you have a legitimate removal request and required evidence.
@@ -84,6 +87,15 @@ export default function Home() {
           ))}
         </div>
       )}
+
+      <div className="mx-auto flex w-full max-w-3xl items-center justify-center">
+        <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 shadow-sm">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <span>
+            Powered by the <span className="text-slate-800">SentinelGuard Privacy Engine</span>
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

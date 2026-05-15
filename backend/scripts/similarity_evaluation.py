@@ -620,11 +620,17 @@ def evaluate_system(
         ]
     })
 
+    # Convert values to formatted strings
+    table_data = [
+        [row["Metric"], f"{row['Value']:.4f}"]
+        for _, row in metrics_df.iterrows()
+    ]
+
     plt.figure(figsize=(8, 4))
     plt.axis('off')
 
     table = plt.table(
-        cellText=np.round(metrics_df.values, 4),
+        cellText=table_data,
         colLabels=metrics_df.columns,
         loc='center'
     )

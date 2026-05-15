@@ -224,11 +224,17 @@ metrics_df = pd.DataFrame({
     ]
 })
 
+# Format values to 4 decimal places
+table_data = [
+    [row["Metric"], f"{row['Value']:.4f}"]
+    for _, row in metrics_df.iterrows()
+]
+
 plt.figure(figsize=(8, 4))
 plt.axis('off')
 
 table = plt.table(
-    cellText=np.round(metrics_df.values, 4),
+    cellText=table_data,
     colLabels=metrics_df.columns,
     loc='center'
 )
@@ -239,34 +245,14 @@ table.scale(1.2, 1.8)
 
 plt.title("Face Recognition Evaluation Metrics", fontsize=14)
 
-metrics_path = os.path.join(RESULTS_FOLDER, "metrics_table.png")
+metrics_path = os.path.join(
+    RESULTS_FOLDER,
+    "metrics_table.png"
+)
 
 plt.savefig(metrics_path, bbox_inches='tight')
 plt.close()
 
-# =========================
-# CONFUSION MATRIX PLOT
-# =========================
-
-plt.figure(figsize=(6, 5))
-
-sns.heatmap(
-    cm,
-    annot=True,
-    fmt='d',
-    cmap='Blues',
-    xticklabels=["Impostor", "Genuine"],
-    yticklabels=["Impostor", "Genuine"]
-)
-
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
-plt.title("Confusion Matrix")
-
-cm_path = os.path.join(RESULTS_FOLDER, "confusion_matrix.png")
-
-plt.savefig(cm_path, bbox_inches='tight')
-plt.close()
 
 # =========================
 # ROC CURVE
@@ -373,7 +359,6 @@ plt.close()
 
 print("\nSaved Result Images:")
 print(metrics_path)
-print(cm_path)
 print(roc_path)
 print(dist_path)
 print(bar_path)
