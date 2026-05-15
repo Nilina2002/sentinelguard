@@ -116,8 +116,6 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
     await submitReport(false);
   };
 
-  if (loading) return <Loading message={loadingMessage || "Loading..."} />;
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
@@ -126,6 +124,11 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
       aria-labelledby="report-modal-title"
     >
       <div className="relative max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/25">
+        {loading && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+            <Loading message={loadingMessage || "Loading..."} />
+          </div>
+        )}
         <div className="sticky top-0 z-[1] flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-6">
           <div>
             <h2 id="report-modal-title" className="text-lg font-bold tracking-tight text-slate-900">
@@ -138,8 +141,9 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Close"
+            disabled={loading}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -147,7 +151,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
           </button>
         </div>
 
-        <div className="space-y-5 px-5 py-5 sm:px-6 sm:py-6">
+        <div className={`space-y-5 px-5 py-5 sm:px-6 sm:py-6 ${loading ? "pointer-events-none opacity-60" : ""}`}>
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
             <img src={imageUrl} alt="Reported content" className="max-h-52 w-full object-contain" />
           </div>
@@ -156,7 +160,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Claim image</h3>
             <p className="mt-1 text-xs text-slate-500">Required — the image you are asserting rights over or matching for removal.</p>
             <label className="mt-3 flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-3 py-6 text-sm font-medium text-brand transition hover:border-brand/60 hover:bg-brand/5">
-              <input type="file" accept="image/*" onChange={handleClaimImageChange} className="sr-only" />
+              <input type="file" accept="image/*" onChange={handleClaimImageChange} className="sr-only" disabled={loading} />
               {claimImageFile ? "Replace file" : "Choose file"}
             </label>
             {claimImagePreview && (
@@ -169,7 +173,8 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
               <button
                 type="button"
                 onClick={() => setIsCameraOn(true)}
-                className="btn-primary flex-1 gap-2 cursor-pointer"
+                className="btn-primary flex-1 gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={loading}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -194,14 +199,16 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, imageId, ima
                 <button
                   type="button"
                   onClick={() => setCapturedImage(null)}
-                  className="btn-ghost cursor-pointer"
+                  className="btn-ghost cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={loading}
                 >
                   Retake
                 </button>
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="btn-primary cursor-pointer"
+                  className="btn-primary cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={loading}
                 >
                   Submit report
                 </button>
